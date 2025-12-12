@@ -110,3 +110,76 @@ def test_remove_item_nonexistent_does_nothing():
     item = get_item_by_name(collection, "Padron x000")
     
     assert item.quantity == 2
+    
+def test_summary_by_category():
+    collection = Collection(name="test")
+        
+    service = make_service()
+        
+    collection = service.add_item(
+        collection,
+        "Teddy",
+        "Yorkie",
+        1,
+    )
+        
+    collection = service.add_item(
+        collection,
+        "Theo",
+        "Lab",
+        1,
+    )
+        
+    collection = service.add_item(
+        collection,
+        "Bowie",
+        "Aussie",
+        1,
+    )
+    
+    summary = service.summary_by_category(collection)
+    
+    assert summary == {
+        "Yorkie": 1,
+        "Lab": 1,
+        "Aussie": 1,
+    }
+    
+def test_summary_by_category_adds_quantities():
+    collection = Collection(name="test")
+    service = make_service()
+    
+    collection = service.add_item(
+        collection,
+        "Teddy",
+        "Yorkie",
+        1,
+    )
+    
+    collection = service.add_item(
+        collection,
+        "Manny",
+        "Yorkie",
+        1,
+    )
+    
+    collection = service.add_item(
+        collection,
+        "Theo",
+        "Lab",
+        1,
+    )
+    
+    summary = service.summary_by_category(collection)
+    
+    assert summary == {
+        "Yorkie": 2,
+        "Lab": 1,
+    }
+    
+def test_summary_by_category_empty_collection():
+    collection = Collection(name="test")
+    service = make_service()
+    
+    assert service.summary_by_category(collection) == {}
+    
