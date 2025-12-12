@@ -47,6 +47,31 @@ class CollectionService:
             )
         return collection
     
+    def remove_item(self, collection: Collection, name: str, category: str, quantity: int) -> Collection:
+        existing = next(
+            (i for i in collection.items if i.name == name and i.category == category),
+            None,
+        )
+        
+        if existing is None:
+            print("Item doesn't exist inside collection.\n")
+            return collection
+        
+        if quantity <= 0:
+            print("Can't update quantity with 0 or negatives")
+            return collection
+        
+        now = datetime.utcnow()
+        
+        if existing.quantity > quantity:
+            existing.quantity -= quantity
+            existing.updated_at = now
+        else:
+            print("Removing item from collection (x0 quantity)")
+            collection.items.remove(existing)
+            
+        return collection
+    
     def summary_by_category(self, collection: Collection) -> dict[str, int]:
         counts = Counter()
         for item in collection.items:
