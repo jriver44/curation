@@ -4,8 +4,8 @@ from pathlib import Path
 from uuid import UUID
 from datetime import datetime
 from typing import Iterable
-from .base import Storage
-from curation.domain import Collection, Item
+from storage.base import Storage
+from domain import Collection, Item
 
 DATA_DIR = Path(os.environ.get("CURATION_DATA_DIR", Path.home() / ".curation"))
 

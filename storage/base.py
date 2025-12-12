@@ -1,5 +1,5 @@
 from typing import Protocol, Iterable
-from curation.domain import Collection
+from domain import Collection
 
 class Storage(Protocol):
     def list_collections(self) -> Iterable[str]:

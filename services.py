@@ -2,12 +2,21 @@ from collections import Counter
 from datetime import datetime
 from uuid import uuid4
 from typing import Iterable
-from .domain import Collection, Item
-from .storage.base import Storage
+from domain import Collection, Item
+from storage.base import Storage
+from storage.json_storage import JsonStorage
 
 class CollectionService:
-    def __init__(self, storage: Storage) -> None:
-        self._storage = storage
+    def __init__(self, storage: Storage | None = None):
+        """
+        If 'storage' is not provided, default to JsonStorage.
+        
+        This makes it easy to use in tests:
+            svc = CollectionServices()
+        and in the CLI:
+            svc = CollectionServices(JsonStorage())
+        """
+        self._storage = storage or JsonStorage()
         
     def load(self, name: str) -> Collection:
         return self._storage.load_collection(name)

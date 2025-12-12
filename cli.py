@@ -1,5 +1,5 @@
-from .storage.json_storage import JsonStorage
-from .services import CollectionService
+from storage.json_storage import JsonStorage
+from services import CollectionService
 
 def main() -> None:
     storage = JsonStorage()
