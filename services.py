@@ -1,7 +1,6 @@
 from collections import Counter
 from datetime import datetime
 from uuid import uuid4
-from typing import Iterable
 from domain import Collection, Item
 from storage.base import Storage
 from storage.json_storage import JsonStorage
@@ -19,14 +18,25 @@ class CollectionService:
         self._storage = storage or JsonStorage()
         
     def load(self, name: str) -> Collection:
+        name = _norm(name)
         return self._storage.load_collection(name)
     
     def save(self, collection: Collection) -> None:
         self._storage.save_collection(collection)
         
     def add_item(self, collection: Collection, name: str, category: str, quantity: int) -> Collection:
+        
+        if not name or not category or quantity <= 0:
+            return collection
+        
+        disp_name = _clean_display(name)
+        disp_category = _clean_display(category)
+        
+        norm_name = _norm(name)
+        norm_category = _norm(category)
+        
         existing = next(
-            (i for i in collection.items if i.name == name and i.category == category),
+            (i for i in collection.items if _norm(i.name) == norm_name and _norm(i.category) == norm_category),
             None,
         )
         
@@ -39,8 +49,8 @@ class CollectionService:
             collection.items.append(
                 Item(
                     id=uuid4(),
-                    name=name,
-                    category=category,
+                    name=disp_name,
+                    category=disp_category,
                     quantity=quantity,
                     created_at=now
                 )
@@ -48,17 +58,18 @@ class CollectionService:
         return collection
     
     def remove_item(self, collection: Collection, name: str, category: str, quantity: int) -> Collection:
+        if quantity <= 0:
+            return collection
+        
+        norm_name = _norm(name)
+        norm_category = _norm(category)
+        
         existing = next(
-            (i for i in collection.items if i.name == name and i.category == category),
+            (i for i in collection.items if _norm(i.name) == norm_name and _norm(i.category) == norm_category),
             None,
         )
         
         if existing is None:
-            print("Item doesn't exist inside collection.\n")
-            return collection
-        
-        if quantity <= 0:
-            print("Can't update quantity with 0 or negatives")
             return collection
         
         now = datetime.utcnow()
@@ -67,7 +78,6 @@ class CollectionService:
             existing.quantity -= quantity
             existing.updated_at = now
         else:
-            print("Removing item from collection (x0 quantity)")
             collection.items.remove(existing)
             
         return collection
@@ -79,5 +89,11 @@ class CollectionService:
         return dict(counts)
     
     def search(self, collection: Collection, keyword: str) -> list[Item]:
-        keyword = keyword.lower()
-        return [i for i in collection.items if keyword in i.name.lower()]
+        key = _norm(keyword)
+        return [i for i in collection.items if key in _norm(i.name)]
+    
+def _norm(s: str) -> str:
+    return s.strip().casefold()
+
+def _clean_display(s: str) -> str:
+    return s.strip()

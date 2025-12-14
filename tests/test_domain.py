@@ -14,7 +14,11 @@ def make_service() -> CollectionService:
     return CollectionService()
 
 def get_item_by_name(collection: Collection, name: str):
-    return next((i for i in collection.items if i.name == name), None)
+    target = _norm(name)
+    return next((i for i in collection.items if _norm(i.name) == target), None)
+
+def _norm(s: str) -> str:
+    return s.strip().casefold()
 
 def test_add_single_item_creates_new_entry():
     collection = Collection(name="test")
@@ -38,8 +42,6 @@ def test_add_same_item_increments_quantity():
     collection = Collection(name="test")
     
     services = make_service()
-    
-    
     
     collection = services.add_item(
         collection, 
@@ -182,4 +184,25 @@ def test_summary_by_category_empty_collection():
     service = make_service()
     
     assert service.summary_by_category(collection) == {}
+    
+def test_add_remove_are_case_insensitive():
+    collection = Collection(name="test")
+    service = make_service()
+    
+    collection = service.add_item(
+        collection, 
+        "     Padron X000 ", 
+        " CIGAR ",
+        2,
+    )
+    
+    collection = service.remove_item(
+        collection,
+        "padron x000",
+        "cigar",
+        1,
+    )
+    
+    item = get_item_by_name(collection, "padron x000")
+    assert item.quantity == 1
     
