@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from uuid import UUID, uuid4
-from typing import Optional
+from uuid import UUID
+
 
 @dataclass
 class Item:
@@ -10,8 +10,9 @@ class Item:
     category: str
     quantity: int
     created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: Optional[datetime] = None
-    
+    updated_at: datetime | None = None
+
+
 @dataclass
 class Collection:
     name: str
