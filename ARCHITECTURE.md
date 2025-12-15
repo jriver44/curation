@@ -20,17 +20,20 @@ The design is intentionally simple but layered so I can swap pieces out (storage
   - No I/O. Just data + helpers.
 
 - `services.py`
-  - `CollectionService`:
+  - `CollectionService` orchestrates domain + storage:
+    - `load(name) -> Collection`
+    - `save(collection) -> None`
     - `add_item(collection, name, category, quantity) -> Collection`
-    - (More methods will be added over time from v1: remove, search, summary, etc.)
-  - Orchestrates domain + storage.
-  - Business rules live here, not in the CLI.
+    - `remove_item(collection, name, category, quantity) -> Collection`
+    - `summary_by_category(collection) -> dict[str, int]`
+    - `search(collection, keyword) -> list[Item]`
+  - Normalization rules live here (case-insensitive matching/search).
 
 - `storage/`
   - `base.py`
-    - `Storage` protocol: `list_collections`, `load_colleciton`, `save_colleciton`.
+    - `Storage` protocol/interface for persistence.
   - `json_storage.py`
-    - `JsonStorage`: saves/loads `Collection` to JSON files in a data directory.
+    - `JsonStorage`: saves/loads `Collection` to JSON in a data directory.
   - Later I will grow this to include a Database-backed storage class.
 
 - `cli.py`
@@ -38,18 +41,21 @@ The design is intentionally simple but layered so I can swap pieces out (storage
     - Prompt for collection name.
     - Menu for add, view, summary, search, save, quit.
   - Calls `CollectionService` methods and prints results.
+  - Only input/output formatting.
 
 - `tests/`
-  - `test_domain.py`
-    - Tests `CollectionService.add_item`:
-      - creates new items with correct fields.
-      - increments quantity when the same item is added again.
+  - Tests focus on `CollectionService` behavior (add/remove/search/summary + validation).
+  - Storage tests should use a temp directory or a fake storage implementation.
 
-## Invariants (as of 12/11/2025)
+## Invariants (as of 12/14/2025)
 
 - The CLI never touches disk directly. Persistence goes through `Storage`.
 - Domain objects (`Item`, `Collection`) do not print or read from input.
 - Business logic lives in `CollecitonServices`, not inside the CLI or storage.
+- Service methods validate inputs:
+  - blank names/categories are rejected
+  - quantity <= 0 is rejected
+- Matching/searching is case-insensitive via normalization rules in the service layer.
 - Tests should talk to `CollectionServices` and domain types.
 
 ## Future study hooks

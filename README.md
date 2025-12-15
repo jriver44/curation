@@ -52,8 +52,8 @@ This way, everything I learn has a home in one project I care about.
 
 - **Language:** Python 3.x
 - **Interface:** CLI
-- **Storage:** JSON files (will be changed once SQLite is implemented)
-- **Testing:** `pytest` (in progress)
+- **Storage:** JSON files via `Storage` interface (will be changed once SQLite is implemented)
+- **Testing:** `pytest`
 
 ---
 
@@ -61,8 +61,15 @@ This way, everything I learn has a home in one project I care about.
 
 ### 1. Clone the repo
 
+SSH:
 ```bash
 git clone git@github.com-jriver44:jriver44/curation.git
+cd curation
+```
+
+or HTTPS:
+```bash
+git clone https://github.com/jriver44/curation.git
 cd curation
 ```
 
@@ -70,10 +77,6 @@ cd curation
 ```bash
 python -m venv .venv
 source .venv/bin/activate   # macOS / Linux
-```
-
-Install dependencies (not implemented yet)
-```bash
 pip install -r requirements.txt
 ```
 
@@ -82,6 +85,7 @@ From the project root:
 ```bash
 python -m curation.cli
 ```
+
 This will prompt for a collection name:
 - If it exists, it loads.
 - If not, it starts a new collection and saves to a JSON file under ~/.curation/
@@ -178,5 +182,40 @@ Will look at the future of the app, and how I can use it more to understand my c
 - Core domain model exists
 - Repo is clean
 - README composed
+
+
+## Status as of 12/14/2025:
+- Built out services.py (CollectionService)
+  - load(name) / save(collection) working through a storage abstraction
+  - add_item() working + increments quantity on duplicates
+  - remove_item() working + decrements + removes entry at zero
+  - summary_by_category() working
+  - search() working
+- Added normalization (_norm) so matching/search can be case-insensitive without messing with the display formatting.
+- Tightened input validation:
+  - Reject blank names/categories (whitespace and empty)
+  - Reject zero/negative quantities for add/remove
+- Testing:
+  - add item creates entry
+  - add item increments quantity
+  - remove item partial + exact removal
+  - remove nonexistent does nothing
+  - rejects blank fields
+  - rejects invalid quantities
+  - summary category totals
+  - case-insensitive behavior
+- Many tests hit multiple failures, but have been brought up to snuff.
+- Repo/tools:
+  - Rebuilt git
+  - Added .gitignore (venv, pycache, macOS stuff)
+  - Cleaned up ssh keys that I had added by mistake
+- Documentation:
+  - README updated to match current project scope
+  - Architecture updated so it no longer claims remove/search/summary are future work.
+- Final state as of 12/14/2025:
+  - App runs
+  - Tests are green
+  - Architecture layered correctly (domain/service/storage/cli)
+  - Docs match the code
 
 ---
