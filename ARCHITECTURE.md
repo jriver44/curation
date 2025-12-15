@@ -57,6 +57,7 @@ The design is intentionally simple but layered so I can swap pieces out (storage
   - quantity <= 0 is rejected
 - Matching/searching is case-insensitive via normalization rules in the service layer.
 - Tests should talk to `CollectionServices` and domain types.
+- Quality gates: pytest green, ruff check clean, ruff format enforced, mypy clean.
 
 ## Future study hooks
 

@@ -105,6 +105,19 @@ This is barebones for now, but will be improved as it evolves.
 
 ---
 
+## Development/Quality Gates
+- Run tests:
+  - pytest
+- Lint(static checks):
+  - ruff check .
+  - Auto-fix: ruff check . --fix
+- Format:
+  - ruff format .
+- Type check:
+  - mypy .
+
+---
+
 ## How this connects to my future semester (plan for studying)
 
 ### 1. Software Engineering
@@ -209,6 +222,7 @@ Will look at the future of the app, and how I can use it more to understand my c
   - Rebuilt git
   - Added .gitignore (venv, pycache, macOS stuff)
   - Cleaned up ssh keys that I had added by mistake
+- Quality gates added (ruff + formatting + mypy) and passing
 - Documentation:
   - README updated to match current project scope
   - Architecture updated so it no longer claims remove/search/summary are future work.
