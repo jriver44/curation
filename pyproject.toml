@@ -1,0 +1,23 @@
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"] # errors, pyflakes, imports, bugbear, pyupgrade
+ignore = ["E501"]                   # ignore line length, formatting handles it
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+python_version = "3.11"
+warn_unused_configs = true
+warn_redundent_casts = true
+no_implicit_optional = true
+check_untyped_defs = true
+disallow_untyped_defs = false
+strict_optional = true
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+ignore_errors = true
