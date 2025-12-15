@@ -60,7 +60,7 @@ def test_add_same_item_increments_quantity():
     
     assert item.quantity == 4
     
-def test_add_item_reject__zero_negative_quantity():
+def test_add_item_reject_zero_negative_quantity():
     collection = Collection(name="test")
     service = make_service()
     
@@ -88,6 +88,49 @@ def test_add_item_reject__zero_negative_quantity():
     )
     
     assert len(collection.items) == 1
+    
+def test_add_item_rejects_blank_name_or_category():
+    collection = Collection(name="test")
+    service = make_service()
+    
+    collection = service.add_item(
+        collection,
+        "       ",
+        "cigar",
+        1,
+    )
+    
+    collection = service.add_item(
+        collection,
+        "Padron",
+        "       ",
+        1,
+    )
+    
+    assert collection.items == []
+    
+def test_add_item_merges_case_insensitive_but_preserves_display():
+    collection = Collection(name="test")
+    service = make_service()
+    
+    collection = service.add_item(
+        collection,
+        "   Padron X000 ",
+        "   CIGAR   ",
+        2,
+    )
+    
+    collection = service.add_item(
+        collection,
+        "padron x000",
+        "cigar",
+        3,
+    )
+    
+    assert len(collection.items) == 1
+    assert collection.items[0].quantity == 5
+    assert collection.items[0].name == "Padron X000"
+    assert collection.items[0].category == "CIGAR" or collection.items[0].category == "Cigar"
 
     
 def test_remove_item():
@@ -181,16 +224,52 @@ def test_remove_item_zero_negative():
     
     assert collection.items == []
     
-def test_norm_remove_item():
+def test_remove_item_wrong_category_does_nothing():
     collection = Collection(name="test")
     service = make_service()
     
     collection = service.add_item(
         collection,
-        "   teddy   ",
-        "YORKIE",
+        "Padron x000",
+        "cigar",
+        2,
+    )
+    
+    collection = service.remove_item(
+        collection,
+        "Padron x000",
+        "tea",
         1,
     )
+    
+    assert get_item_by_name(collection, "Padron x000").quantity == 2
+    
+def test_remove_item_rejects_zero_or_negative():
+    collection = Collection(name="test")
+    service = make_service()
+    
+    collection = service.add_item(
+        collection,
+        "Padron x000",
+        "cigar", 
+        2,
+    )
+    
+    collection = service.remove_item(
+        collection,
+        "Padron x000",
+        "cigar",
+        0,
+    )
+    
+    collection = service.remove_item(
+        collection,
+        "Padron x000",
+        "cigar",
+        -1,
+    )
+    
+    assert get_item_by_name(collection, "Padron x000").quantity == 2
     
 def test_summary_by_category():
     collection = Collection(name="test")
@@ -285,3 +364,54 @@ def test_add_remove_are_case_insensitive():
     item = get_item_by_name(collection, "padron x000")
     assert item.quantity == 1
     
+def test_search_case_insensitive_and_substring():
+    collection = Collection(name="test")
+    service = make_service()
+    
+    collection = service.add_item(
+        collection,
+        "Padron 1964 Anniversary",
+        "cigar",
+        1,
+    )
+    
+    collection = service.add_item(
+        collection,
+        "Arturo Fuente OpusX",
+        "cigar",
+        1,
+    )
+    
+    results = service.search(collection, "pAdRoN")
+    
+    assert [i.name for i in results] == ["Padron 1964 Anniversary"]
+    
+def test_search_trim_keyword_whitespace():
+    collection = Collection(name="test")
+    service = make_service()
+    
+    collection = service.add_item(
+        collection,
+        "Padron x000",
+        "cigar",
+        1,
+    )
+    
+    results = service.search(collection, "  padron  ")
+    
+    assert len(results) == 1
+    assert results[0].name == "Padron x000"
+    
+def test_search_empty_keyword_returns_empty_list():
+    collection = Collection(name="test")
+    service = make_service()
+    
+    collection = service.add_item(
+        collection,
+        "Padron x000",
+        "cigar",
+        1,
+    )
+    
+    assert service.search(collection, "") == []
+    assert service.search(collection, "     ") == []

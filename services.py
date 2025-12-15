@@ -26,14 +26,15 @@ class CollectionService:
         
     def add_item(self, collection: Collection, name: str, category: str, quantity: int) -> Collection:
         
-        if not name or not category or quantity <= 0:
+        norm_name = _norm(name)
+        norm_category = _norm(category)
+        
+        if not norm_name or not norm_category or quantity <= 0:
             return collection
         
         disp_name = _clean_display(name)
         disp_category = _clean_display(category)
         
-        norm_name = _norm(name)
-        norm_category = _norm(category)
         
         existing = next(
             (i for i in collection.items if _norm(i.name) == norm_name and _norm(i.category) == norm_category),
@@ -89,6 +90,9 @@ class CollectionService:
         return dict(counts)
     
     def search(self, collection: Collection, keyword: str) -> list[Item]:
+        if keyword.strip() == "":
+            return []
+        
         key = _norm(keyword)
         return [i for i in collection.items if key in _norm(i.name)]
     
