@@ -60,6 +60,36 @@ def test_add_same_item_increments_quantity():
     
     assert item.quantity == 4
     
+def test_add_item_reject__zero_negative_quantity():
+    collection = Collection(name="test")
+    service = make_service()
+    
+    collection = service.add_item(
+        collection,
+        "Teddy",
+        "Yorkie",
+        0,
+    )
+    
+    collection = service.add_item(
+        collection,
+        "Teddy",
+        "Yorkie",
+        -1,
+    )
+    
+    assert collection.items == []
+    
+    collection = service.add_item(
+        collection,
+        "Teddy",
+        "Yorkie",
+        1,
+    )
+    
+    assert len(collection.items) == 1
+
+    
 def test_remove_item():
     collection = Collection(name="test")
     
@@ -112,6 +142,55 @@ def test_remove_item_nonexistent_does_nothing():
     item = get_item_by_name(collection, "Padron x000")
     
     assert item.quantity == 2
+    
+def test_remove_item_zero_negative():
+    collection = Collection(name="test")
+    service = make_service()
+    
+    collection = service.remove_item(
+        collection,
+        "Teddy",
+        "Yorkie",
+        -1,
+    )
+    
+    collection = service.remove_item(
+        collection,
+        "Teddy",
+        "Yorkie",
+        0
+    )
+    
+    assert collection.items == []
+    
+    collection = service.add_item(
+        collection,
+        "Teddy",
+        "Yorkie",
+        1,
+    )
+    
+    assert len(collection.items) == 1
+    
+    collection = service.remove_item(
+        collection,
+        "Teddy",
+        "Yorkie",
+        1,
+    )
+    
+    assert collection.items == []
+    
+def test_norm_remove_item():
+    collection = Collection(name="test")
+    service = make_service()
+    
+    collection = service.add_item(
+        collection,
+        "   teddy   ",
+        "YORKIE",
+        1,
+    )
     
 def test_summary_by_category():
     collection = Collection(name="test")
