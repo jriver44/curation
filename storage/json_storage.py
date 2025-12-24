@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import os
 from collections.abc import Iterable
@@ -10,21 +12,45 @@ from storage.base import Storage
 
 DATA_DIR = Path(os.environ.get("CURATION_DATA_DIR", Path.home() / ".curation"))
 
+def _norm(s: str) -> str:
+    return s.strip().casefold()
 
 class JsonStorage(Storage):
-    def __init__(self, root: Path | None = None) -> None:
-        self.root = root or DATA_DIR
-        self.root.mkdir(parents=True, exist_ok=True)
+    def __init__(self, data_dir: Path | None = None) -> None:
+        self._data_dir = (
+            (Path.home() / ".curation") if data_dir is None else Path(data_dir)
+        )
+        self._data_dir.mkdir(parents=True, exist_ok=True)
 
     def _path_for(self, name: str) -> Path:
-        return self.root / f"{name}.json"
+        return self._data_dir / f"{name}.json"
 
     def list_collections(self) -> Iterable[str]:
-        for p in self.root.glob("*.json"):
-            yield p.stem
+        self._data_dir.mkdir(parents=True, exist_ok=True)
+
+        names: list[str] = []
+
+        for path in sorted(self._data_dir.glob("*.json")):
+            try:
+                payload = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                # skip corrupted/unreadable files
+                continue
+
+            name = payload.get("name")
+
+            if isinstance(name, str) and name.strip():
+                names.append(name)
+
+        return names
 
     def load_collection(self, name: str) -> Collection:
         path = self._path_for(name)
+        legacy = self._data_dir / f"{name}.json"
+        
+        if not path.exists() and legacy.exists():
+            path = legacy
+        
         if not path.exists():
             return Collection(name=name)
 
@@ -44,7 +70,9 @@ class JsonStorage(Storage):
             )
             for item in raw.get("items", [])
         ]
-        return Collection(name=name, items=items)
+        
+        display_name = raw.get("name", name)
+        return Collection(name=display_name, items=items)
 
     def save_collection(self, collection: Collection) -> None:
         path = self._path_for(collection.name)
@@ -71,3 +99,5 @@ class JsonStorage(Storage):
             os.fsync(f.fileno())
 
         os.replace(temp, path)
+        
+
