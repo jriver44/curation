@@ -138,4 +138,94 @@ class SQLiteStorage(Storage):
         
 
     def save_collection(self, collection: Collection) -> None:
-        raise NotImplementedError
+        conn = connect(self._database_path)
+        try:
+            init_database(conn)
+            
+            collection_display = _clean_display(collection.name)
+            collection_normal = _norm(collection.name)
+            now = datetime.utcnow().isoformat()
+            
+            with conn:
+                # all or nothing save
+                # upsert collection using logical key by name_norm
+                conn.execute("""
+                             INSERT INTO collections (name, name_norm, created_at)
+                             VALUES (?, ?, ?)
+                             ON CONFLICT(name_norm) DO UPDATE SET
+                                name = excluded.name;
+                             """,
+                             (collection_display, collection_normal, now),
+                             )
+                
+                row = conn.execute(
+                    "SELECT id FROM collections WHERE name_norm = ?;",
+                    (collection_normal,),
+                ).fetchone()
+                
+                if row is None:
+                    raise RuntimeError("Failed to fetch collection id after upsert.")
+                collection_id = int(row["id"])
+                
+                # upsert items using a logical key (collection_id, name_norm, category_norm)
+                for item in collection.items:
+                    name_display = _clean_display(item.name)
+                    category_display = _clean_display(item.category)
+                    name_norm = _norm(item.name)
+                    category_norm = _norm(item.category)
+                    
+                    conn.execute(
+                        """
+                        INSERT INTO items (
+                            id, collection_id,
+                            name, name_norm,
+                            category, category_norm,
+                            quantity, created_at, updated_at
+                        )
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ON CONFLICT(collection_id, name_norm, category_norm) DO UPDATE SET
+                            name = excluded.name,
+                            category = excluded.category,
+                            quantity = excluded.quantity,
+                            updated_at = ?;
+                        """,
+                        (
+                            str(item.id),
+                            collection_id,
+                            name_display,
+                            name_norm,
+                            category_display,
+                            category_norm,
+                            int(item.quantity),
+                            item.created_at.isoformat(),
+                            item.updated_at.isoformat() if item.updated_at else None,
+                            now,
+                        ),
+                    )
+                
+                # delete database rows that are no longer in memory
+                pairs = [(_norm(i.name), _norm(i.category)) for i in collection.items]
+                
+                if not pairs: 
+                    conn.execute(
+                        "DELETE FROM items WHERE collection_id = ?;",
+                        (collection_id,),
+                    )
+                else:
+                    placeholders = ",".join(["(?, ?)"] * len(pairs))
+                    parameters: list[object] = [collection_id]
+                    
+                    for nam_nor, cat_nor in pairs:
+                        parameters.extend([nam_nor, cat_nor])
+                        
+                    conn.execute(
+                        f"""
+                        DELETE FROM items
+                        WHERE collection_id = ?
+                            AND (name_norm, category_norm) NOT IN ({placeholders});
+                        """,
+                        parameters,
+                    )
+        finally:
+            conn.close()
+                

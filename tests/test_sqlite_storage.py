@@ -2,6 +2,7 @@ from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
 
+from domain import Collection, Item
 from storage.sqlite_storage import SQLiteStorage, connect, init_database
 
 
@@ -95,6 +96,45 @@ def test_load_collection_returns_items(tmp_path: Path) -> None:
         
     storage = SQLiteStorage(database)
     loaded = storage.load_collection("  CIGARS  ")
+    
+    assert loaded.name == "Cigars"
+    assert len(loaded.items) == 1
+    assert loaded.items[0].name == "Padron 1964"
+    assert loaded.items[0].category == "Cigar"
+    assert loaded.items[0].quantity == 2
+
+def test_save_then_load_roundtrip(tmp_path: Path) -> None:
+    database = tmp_path / "curation.db"
+    storage = SQLiteStorage(database)
+    
+    collection = Collection(
+        name = "Cigars",
+        items = [
+            Item(id=uuid4(), name="Padron 1964", category="Cigar", quantity=2),
+            Item(id=uuid4(), name="Trinidad", category="Cigar", quantity=1),
+        ],
+    )
+    
+    storage.save_collection(collection)
+    loaded = storage.load_collection("  CIGARS  ")
+    
+    assert loaded.name == "Cigars"
+    assert len(loaded.items) == 2
+    assert sorted((i.name, i.quantity) for i in loaded.items) == [
+        ("Padron 1964", 2),
+        ("Trinidad", 1),
+    ]
+    
+def test_save_updates_quantity_without_duplication(tmp_path: Path) -> None:
+    database = tmp_path / "curation.db"
+    storage = SQLiteStorage(database)
+    
+    item = Item(id=uuid4(), name="Padron 1964", category="Cigar", quantity=2)
+    collection = Collection(name="Cigars", items=[item])
+    
+    storage.save_collection(collection)
+    
+    loaded = storage.load_collection("cigars")
     
     assert loaded.name == "Cigars"
     assert len(loaded.items) == 1
