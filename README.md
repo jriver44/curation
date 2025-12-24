@@ -24,6 +24,14 @@ Current version is intentionally small and clean:
 
 So it's already usable as a minimal collection tracker, but the real point is to constantly grow the app.
 
+## SQLite Backend w/ CLI update (12/24/2025)
+
+ - JSON based storage is now default and still operational, but an optional SQLite backend has been added in. Both operate through a base Storage abstraction
+ - SQLite is operational with selection being done through arg parse at initialization.
+ - SQLiteStorage class implemented (schema + save/load/list w/ tests)
+ - CLI supporst --backend and --db options
+- pytest/ruff/mypy configured/initialized and are passing all runs.
+
 ---
 
 ## Why this exists
@@ -83,8 +91,21 @@ pip install -r requirements.txt
 ### 3. Run the CLI
 From the project root:
 ```bash
-python -m curation.cli
+python cli.py
 ```
+
+For specific backends:
+- JSON (default):
+```bash
+python cli.py --backend json
+```
+
+- SQLite:
+```bash
+python cli.py --backend sqlite --db curation.db
+```
+
+For
 
 This will prompt for a collection name:
 - If it exists, it loads.
@@ -173,9 +194,9 @@ All of this was researched from old syllabi found online.
 - Document architecture & module responsibilities
 
 ### Phase 2: Database:
-- Add SQLite backend
-- Schema design + migrations / imports
-- Config option to choose storage backend
+- Added SQLite backend
+- Schema design + migrations / imports handl
+- Configed options to choose storage backend.
 
 ### Phaswe 3: Security and OS
 - Input validation and error handling

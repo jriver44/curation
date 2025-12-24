@@ -34,7 +34,10 @@ The design is intentionally simple but layered so I can swap pieces out (storage
     - `Storage` protocol/interface for persistence.
   - `json_storage.py`
     - `JsonStorage`: saves/loads `Collection` to JSON in a data directory.
-  - Later I will grow this to include a Database-backed storage class.
+  - `sqlite_storage.py`
+    - SQLiteStorage: SQLite backend implementing Storage
+    - Schema initialization w/ constraints and FK enforcement
+    - Save semantics: upsert + delete removed items (tests confirmed)
 
 - `cli.py`
   - Simple terminal UI:
@@ -42,6 +45,8 @@ The design is intentionally simple but layered so I can swap pieces out (storage
     - Menu for add, view, summary, search, save, quit.
   - Calls `CollectionService` methods and prints results.
   - Only input/output formatting.
+  - --backend {json,sqlite}
+  - --db PATH (SQLite only)
 
 - `tests/`
   - Tests focus on `CollectionService` behavior (add/remove/search/summary + validation).
@@ -51,13 +56,14 @@ The design is intentionally simple but layered so I can swap pieces out (storage
 
 - The CLI never touches disk directly. Persistence goes through `Storage`.
 - Domain objects (`Item`, `Collection`) do not print or read from input.
-- Business logic lives in `CollecitonServices`, not inside the CLI or storage.
+- Business logic lives in `CollectionService`, not inside the CLI or storage.
 - Service methods validate inputs:
   - blank names/categories are rejected
   - quantity <= 0 is rejected
 - Matching/searching is case-insensitive via normalization rules in the service layer.
-- Tests should talk to `CollectionServices` and domain types.
+- Tests should talk to `CollectionService` and domain types.
 - Quality gates: pytest green, ruff check clean, ruff format enforced, mypy clean.
+- CLI selects storage backend at startup with a service layer staying seperate from the storage.
 
 ## Future study hooks
 
@@ -68,6 +74,9 @@ The design is intentionally simple but layered so I can swap pieces out (storage
 - **Databases**
   - Implement a `SqlStorage` that satisfies `Storage` against SQLite
   - Compare behaviors vs `JsonStorage`.
+  - JSON -> SQLite migration/import tool
+  - Backup/expre
+  - More querying/reporting
 
 - **Cybersecurity**
   - Harden input handling and validation in the CLI.

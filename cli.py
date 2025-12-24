@@ -12,14 +12,15 @@ def make_storage(backend: str, db: str) -> Storage:
         return SQLiteStorage(Path(db))
     return JsonStorage()
 
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--backend", choices=("json", "sqlite"), default="json")
     parser.add_argument("--db", default="curation.db")
     args = parser.parse_args()
-    
+
     storage: Storage = make_storage(args.backend, args.db)
-    
+
     service = CollectionService(storage)
 
     name = input("Enter collection name: ").strip()
