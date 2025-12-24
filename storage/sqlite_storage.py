@@ -87,23 +87,23 @@ class SQLiteStorage(Storage):
     def load_collection(self, name: str) -> Collection:
         name_norm = _norm(name)
         display_name = _clean_display(name)
-        
+
         conn = connect(self._database_path)
-        
+
         try:
             init_database(conn)
-            
+
             collection_row = conn.execute(
                 "SELECT id, name FROM collections WHERE name_norm = ?;",
                 (name_norm,),
             ).fetchone()
-        
+
             if collection_row is None:
                 return Collection(name=display_name, items=[])
-        
+
             collection_id = int(collection_row["id"])
             collection_name = str(collection_row["name"])
-        
+
             item_rows = conn.execute(
                 """
                 SELECT id, name, category, quantity, created_at, updated_at
@@ -113,14 +113,14 @@ class SQLiteStorage(Storage):
                 """,
                 (collection_id,),
             ).fetchall()
-        
+
             items: list[Item] = []
-        
+
             for row in item_rows:
                 created_at = _parse_datetime(str(row["created_at"]))
                 updated_raw = row["updated_at"]
                 updated_at = _parse_datetime(str(updated_raw)) if updated_raw is not None else None
-            
+
                 items.append(
                     Item(
                         id=UUID(str(row["id"])),
@@ -134,46 +134,45 @@ class SQLiteStorage(Storage):
             return Collection(name=collection_name, items=items)
         finally:
             conn.close()
-        
-        
 
     def save_collection(self, collection: Collection) -> None:
         conn = connect(self._database_path)
         try:
             init_database(conn)
-            
+
             collection_display = _clean_display(collection.name)
             collection_normal = _norm(collection.name)
             now = datetime.utcnow().isoformat()
-            
+
             with conn:
                 # all or nothing save
                 # upsert collection using logical key by name_norm
-                conn.execute("""
+                conn.execute(
+                    """
                              INSERT INTO collections (name, name_norm, created_at)
                              VALUES (?, ?, ?)
                              ON CONFLICT(name_norm) DO UPDATE SET
                                 name = excluded.name;
                              """,
-                             (collection_display, collection_normal, now),
-                             )
-                
+                    (collection_display, collection_normal, now),
+                )
+
                 row = conn.execute(
                     "SELECT id FROM collections WHERE name_norm = ?;",
                     (collection_normal,),
                 ).fetchone()
-                
+
                 if row is None:
                     raise RuntimeError("Failed to fetch collection id after upsert.")
                 collection_id = int(row["id"])
-                
+
                 # upsert items using a logical key (collection_id, name_norm, category_norm)
                 for item in collection.items:
                     name_display = _clean_display(item.name)
                     category_display = _clean_display(item.category)
                     name_norm = _norm(item.name)
                     category_norm = _norm(item.category)
-                    
+
                     conn.execute(
                         """
                         INSERT INTO items (
@@ -202,11 +201,11 @@ class SQLiteStorage(Storage):
                             now,
                         ),
                     )
-                
+
                 # delete database rows that are no longer in memory
                 pairs = [(_norm(i.name), _norm(i.category)) for i in collection.items]
-                
-                if not pairs: 
+
+                if not pairs:
                     conn.execute(
                         "DELETE FROM items WHERE collection_id = ?;",
                         (collection_id,),
@@ -214,10 +213,10 @@ class SQLiteStorage(Storage):
                 else:
                     placeholders = ",".join(["(?, ?)"] * len(pairs))
                     parameters: list[object] = [collection_id]
-                    
+
                     for nam_nor, cat_nor in pairs:
                         parameters.extend([nam_nor, cat_nor])
-                        
+
                     conn.execute(
                         f"""
                         DELETE FROM items
@@ -228,4 +227,3 @@ class SQLiteStorage(Storage):
                     )
         finally:
             conn.close()
-                

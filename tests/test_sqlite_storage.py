@@ -38,36 +38,38 @@ def test_list_collections_returns_sorted_names(tmp_path: Path):
 
     storage = SQLiteStorage(database)
     assert storage.list_collections() == ["Alpha", "Zed"]
-    
+
+
 def test_load_missing_collection_returns_empty(tmp_path: Path) -> None:
     database = tmp_path / "curation.db"
     storage = SQLiteStorage(database)
-    
+
     collection = storage.load_collection("Does Not Exist")
-    
-    assert collection.name  == "Does Not Exist"
+
+    assert collection.name == "Does Not Exist"
     assert collection.items == []
-    
+
+
 def test_load_collection_returns_items(tmp_path: Path) -> None:
     database = tmp_path / "curation.db"
     now = datetime.utcnow().isoformat()
-    
+
     conn = connect(database)
     try:
         init_database(conn)
-        
+
         conn.execute(
             "INSERT INTO collections (name, name_norm, created_at) VALUES (?, ?, ?);",
             ("Cigars", "cigars", now),
         )
-        
+
         collection_id = conn.execute(
             "SELECT id FROM collections WHERE name_norm = ?;",
             ("cigars",),
         ).fetchone()["id"]
-        
+
         item_id = str(uuid4())
-        
+
         conn.execute(
             """
             INSERT INTO items (
@@ -93,51 +95,86 @@ def test_load_collection_returns_items(tmp_path: Path) -> None:
         conn.commit()
     finally:
         conn.close()
-        
+
     storage = SQLiteStorage(database)
     loaded = storage.load_collection("  CIGARS  ")
-    
+
     assert loaded.name == "Cigars"
     assert len(loaded.items) == 1
     assert loaded.items[0].name == "Padron 1964"
     assert loaded.items[0].category == "Cigar"
     assert loaded.items[0].quantity == 2
 
+
 def test_save_then_load_roundtrip(tmp_path: Path) -> None:
     database = tmp_path / "curation.db"
     storage = SQLiteStorage(database)
-    
+
     collection = Collection(
-        name = "Cigars",
-        items = [
+        name="Cigars",
+        items=[
             Item(id=uuid4(), name="Padron 1964", category="Cigar", quantity=2),
             Item(id=uuid4(), name="Trinidad", category="Cigar", quantity=1),
         ],
     )
-    
+
     storage.save_collection(collection)
     loaded = storage.load_collection("  CIGARS  ")
-    
+
     assert loaded.name == "Cigars"
     assert len(loaded.items) == 2
     assert sorted((i.name, i.quantity) for i in loaded.items) == [
         ("Padron 1964", 2),
         ("Trinidad", 1),
     ]
-    
+
+
 def test_save_updates_quantity_without_duplication(tmp_path: Path) -> None:
     database = tmp_path / "curation.db"
     storage = SQLiteStorage(database)
-    
+
     item = Item(id=uuid4(), name="Padron 1964", category="Cigar", quantity=2)
     collection = Collection(name="Cigars", items=[item])
-    
+
     storage.save_collection(collection)
-    
+
     loaded = storage.load_collection("cigars")
-    
+
     assert loaded.name == "Cigars"
     assert len(loaded.items) == 1
     assert loaded.items[0].name == "Padron 1964"
     assert loaded.items[0].category == "Cigar"
     assert loaded.items[0].quantity == 2
+
+
+def test_save_deletes_removed_items(tmp_path: Path) -> None:
+    database = tmp_path / "curation.db"
+    storage = SQLiteStorage(database)
+
+    item_a = Item(id=uuid4(), name="Padron 1964", category="Cigar", quantity=2)
+    item_b = Item(id=uuid4(), name="Trinidad", category="Cigar", quantity=1)
+    collection = Collection(name="Cigars", items=[item_a, item_b])
+
+    storage.save_collection(collection)
+
+    collection.items = [item_a]
+    storage.save_collection(collection)
+
+    loaded = storage.load_collection("cigars")
+    assert sorted(i.name for i in loaded.items) == ["Padron 1964"]
+
+
+def test_save_empty_collection_deletes_all_items(tmp_path: Path) -> None:
+    database = tmp_path / "curation.db"
+    storage = SQLiteStorage(database)
+
+    item_a = Item(id=uuid4(), name="Padron 1964", category="Cigar", quantity=2)
+    collection = Collection(name="Cigars", items=[item_a])
+
+    storage.save_collection(collection)
+
+    collection.items = []
+    storage.save_collection(collection)
+
+    loaded = storage.load_collection("cigars")
+    assert loaded.items == []
