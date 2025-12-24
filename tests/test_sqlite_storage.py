@@ -178,3 +178,29 @@ def test_save_empty_collection_deletes_all_items(tmp_path: Path) -> None:
 
     loaded = storage.load_collection("cigars")
     assert loaded.items == []
+
+
+def test_multiple_collections_in_one_database(tmp_path: Path) -> None:
+    database = tmp_path / "curation.db"
+    storage = SQLiteStorage(database)
+
+    cigars = Collection(
+        name="Cigars",
+        items=[Item(id=uuid4(), name="Padron 1964", category="Cigar", quantity=2)],
+    )
+
+    tea = Collection(
+        name="Tea",
+        items=[Item(id=uuid4(), name="Da Hong Pao", category="Oolong", quantity=1)],
+    )
+
+    storage.save_collection(cigars)
+    storage.save_collection(tea)
+
+    assert storage.list_collections() == ["Cigars", "Tea"]
+
+    loaded_cigars = storage.load_collection("cigars")
+    loaded_tea = storage.load_collection("TEA")
+
+    assert [i.name for i in loaded_cigars.items] == ["Padron 1964"]
+    assert [i.name for i in loaded_tea.items] == ["Da Hong Pao"]
