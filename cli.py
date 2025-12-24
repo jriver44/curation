@@ -1,9 +1,25 @@
-from services import CollectionService
-from storage.json_storage import JsonStorage
+import argparse
+from pathlib import Path
 
+from services import CollectionService
+from storage.base import Storage
+from storage.json_storage import JsonStorage
+from storage.sqlite_storage import SQLiteStorage
+
+
+def make_storage(backend: str, db: str) -> Storage:
+    if backend == "sqlite":
+        return SQLiteStorage(Path(db))
+    return JsonStorage()
 
 def main() -> None:
-    storage = JsonStorage()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--backend", choices=("json", "sqlite"), default="json")
+    parser.add_argument("--db", default="curation.db")
+    args = parser.parse_args()
+    
+    storage: Storage = make_storage(args.backend, args.db)
+    
     service = CollectionService(storage)
 
     name = input("Enter collection name: ").strip()

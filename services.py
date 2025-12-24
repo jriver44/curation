@@ -96,7 +96,7 @@ class CollectionService:
         return collection
 
     def summary_by_category(self, collection: Collection) -> dict[str, int]:
-        counts = Counter()
+        counts: Counter[str] = Counter()
         for item in collection.items:
             counts[item.category] += item.quantity
         return dict(counts)
