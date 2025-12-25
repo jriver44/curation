@@ -1,10 +1,14 @@
 from collections import Counter
 from datetime import datetime
+from typing import Literal
 from uuid import uuid4
 
 from domain import Collection, Item
 from storage.base import Storage
 from storage.json_storage import JsonStorage
+
+RemoveOutcome = Literal["not_found", "decremented", "deleted"]
+SetQuantityOutcome = Literal["not_found", "set", "deleted"]
 
 
 class CollectionService:
@@ -65,13 +69,17 @@ class CollectionService:
         return collection
 
     def remove_item(
-        self, collection: Collection, name: str, category: str, quantity: int
-    ) -> Collection:
-        if quantity <= 0:
-            return collection
-
+        self,
+        collection: Collection,
+        name: str,
+        category: str,
+        quantity: int,
+    ) -> RemoveOutcome:
         norm_name = _norm(name)
         norm_category = _norm(category)
+
+        if not norm_name or not norm_name or quantity <= 0:
+            return "not_found"
 
         existing = next(
             (
@@ -83,17 +91,17 @@ class CollectionService:
         )
 
         if existing is None:
-            return collection
+            return "not_found"
 
         now = datetime.utcnow()
 
         if existing.quantity > quantity:
             existing.quantity -= quantity
             existing.updated_at = now
-        else:
-            collection.items.remove(existing)
+            return "decremented"
 
-        return collection
+        collection.items.remove(existing)
+        return "deleted"
 
     def summary_by_category(self, collection: Collection) -> dict[str, int]:
         counts: Counter[str] = Counter()
@@ -107,6 +115,39 @@ class CollectionService:
 
         key = _norm(keyword)
         return [i for i in collection.items if key in _norm(i.name)]
+
+    def set_quantity(
+        self,
+        collection: Collection,
+        name: str,
+        category: str,
+        quantity: int,
+    ) -> SetQuantityOutcome:
+        norm_name = _norm(name)
+        norm_category = _norm(category)
+
+        if not norm_name or not norm_category or quantity < 0:
+            return "not_found"
+
+        existing = next(
+            (
+                i
+                for i in collection.items
+                if _norm(i.name) == norm_name and _norm(i.category) == norm_category
+            ),
+            None,
+        )
+
+        if existing is None:
+            return "not_found"
+
+        if quantity == 0:
+            collection.items.remove(existing)
+            return "deleted"
+
+        existing.quantity = quantity
+        existing.updated_at = datetime.utcnow()
+        return "set"
 
 
 def _norm(s: str) -> str:

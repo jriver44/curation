@@ -29,7 +29,7 @@ def test_migrate_json_to_sqlite_roundtrip(tmp_path: Path) -> None:
     )
 
     source.save_collection(source_collection)
-    
+
     assert list(source.list_collections()) == ["Cigars"]
 
     migrated_collection = migrate_all(source, destination)
@@ -53,7 +53,7 @@ def test_migration_is_idempotent(tmp_path: Path) -> None:
             items=[Item(id=uuid4(), name="Da Hong Pao", category="Oolong", quantity=3)],
         )
     )
-    
+
     assert list(source.list_collections()) == ["Tea"]
 
     migrate_all(source, destination)
